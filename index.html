@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kino Vayb — Bosh sahifa</title>
+<style>
+:root{
+  --bg:#060708;
+  --panel:#0f1717;
+  --muted:#9aa6a6;
+  --accent:#16b395;
+  --accent2:#00d29a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:#e6f3ef;min-height:100vh;display:flex;}
+
+/* SIDEBAR */
+.sidebar{
+  width:260px;background:linear-gradient(180deg,#0f1717,#081215);padding:20px;position:fixed;left:0;top:0;bottom:0;overflow:auto;border-right:1px solid rgba(255,255,255,0.02);
+}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{background:linear-gradient(135deg,var(--accent2),#058f78);width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#00120b}
+.sitename{font-weight:800;color:var(--accent)}
+.menu-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:#0b1113;margin-bottom:8px;cursor:pointer}
+.menu-item:hover{background:linear-gradient(90deg,var(--accent),#082e23)}
+.genres-title{color:var(--muted);margin-top:10px;margin-bottom:8px;font-size:13px}
+.genres-list{display:none;flex-direction:column;gap:6px;margin-left:6px}
+.genre-link{padding:8px;border-radius:8px;background:#0b1113;color:#cfeee6;cursor:pointer}
+.genre-link.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#00120b;font-weight:800}
+
+/* MAIN */
+.main{margin-left:260px;flex:1;padding:18px}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.search{flex:1;display:flex;align-items:center;gap:8px}
+.search input{width:100%;padding:10px;border-radius:10px;border:0;background:#0d1416;color:inherit;outline:none}
+.hamburger{display:none}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.03);position:relative;transition:transform .18s;padding-bottom:10px}
+.card:hover{transform:translateY(-6px)}
+.poster{width:100%;height:240px;object-fit:cover;background:#080808;display:block;border-bottom:1px solid rgba(255,255,255,0.02)}
+.card-body{padding:10px}
+.title{margin:0 0 6px 0;font-size:15px;color:#e9f9f2}
+.meta{color:var(--muted);font-size:13px;margin-bottom:8px}
+.watch{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;padding:8px 10px;border-radius:8px;color:#00120b;font-weight:800;cursor:pointer}
+.info{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:inherit;cursor:pointer}
+
+/* responsive */
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-320px;z-index:999;width:300px;padding:12px}
+  .sidebar.compact .sitename{display:none}
+  .main{margin-left:72px}
+  .hamburger{display:block}
+}
+@media(max-width:700px){
+  .sidebar{left:-320px}
+  .sidebar.show{left:0}
+  .main{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar" aria-label="Меню">
+  <div class="brand">
+    <div class="logo">▶</div>
+    <div>
+      <div class="sitename">KINOVAYB.NET</div>
+      <div style="font-size:12px;color:var(--muted)">Кино. Стильно.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button onclick="openAdmin()" style="flex:1;padding:8px;border-radius:8px;border:0;background:var(--accent);color:#00120b;cursor:pointer">Admin</button>
+    <button onclick="location.reload()" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer">Обновить</button>
+  </div>
+
+  <div class="menu-item" onclick="filterType('film')">Фильмы <span>🎬</span></div>
+  <div class="menu-item" onclick="filterType('serial')">Сериалы <span>📺</span></div>
+  <div class="menu-item" onclick="filterType('cartoon')">Мультфильмы <span>🧸</span></div>
+
+  <div class="genres-title">Жанры</div>
+  <div class="menu-item" onclick="toggleGenres()">
+    <span>Показать жанры</span><span id="arrow">▼</span>
+  </div>
+
+  <div class="genres-list" id="genresList" role="menu" aria-hidden="true">
+    <!-- genres will be injected -->
+  </div>
+
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="search"><input id="q" placeholder="Поиск" /></div>
+  </div>
+
+  <section id="grid" class="grid" aria-live="polite"></section>
+</main>
+
+<script>
+/* ===== data key & defaults ===== */
+const STORAGE_KEY = 'movies_v1';
+const defaultMovies = [
+  {id:1,type:'film',genre:'Боевик (Jangari)',title:'Terminator',year:1990,time:'1ч 47м',poster:'https://via.placeholder.com/400x600?text=Terminator',desc:'Action classic',qualities:[{q:'480p',url:''}]},
+  {id:2,type:'film',genre:'Комедия (Kulguli)',title:'Maska',year:1994,time:'1ч 41м',poster:'https://via.placeholder.com/400x600?text=Maska',desc:'Comedy film',qualities:[{q:'480p',url:''}]},
+  {id:3,type:'serial',genre:'Драма (Drama)',title:'Eshref va Ruya',year:2025,time:'Сезон 1',poster:'https://via.placeholder.com/400x600?text=Eshref+va+Ruya',desc:'Serial example',qualities:[{q:'720p',url:''}]},
+  {id:4,type:'cartoon',genre:'Фантастика (Fantastik)',title:'Avatar',year:2009,time:'2ч 42м',poster:'https://via.placeholder.com/400x600?text=Avatar',desc:'Fantasy blockbuster',qualities:[{q:'1080p',url:''}]}
+];
+
+function loadMovies(){
+  const s = localStorage.getItem(STORAGE_KEY);
+  if(!s) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMovies));
+    return [...defaultMovies];
+  }
+  try { return JSON.parse(s); } catch(e){ return [...defaultMovies]; }
+}
+function saveMovies(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+/* ===== helpers ===== */
+const grid = document.getElementById('grid');
+const qInput = document.getElementById('q');
+const genresListEl = document.getElementById('genresList');
+let movies = loadMovies();
+let currentType = null; // film/serial/cartoon or null for all
+let currentGenre = 'Все';
+
+/* populate genres from predefined list + movies */
+const presetGenres = [
+  "Все",
+  "Боевик",
+  "Приключения",
+  "Драма",
+  "Фэнтези",
+  "Kриминал",
+  "Kомедия",
+  "Триллеры",
+  "Фантастика"
+];
+
+function renderGenres(){
+  genresListEl.innerHTML = '';
+  presetGenres.forEach(g=>{
+    const a = document.createElement('div');
+    a.className = 'genre-link';
+    a.textContent = g;
+    a.onclick = ()=>{ currentGenre = g; render(); highlightGenre(g); }
+    genresListEl.appendChild(a);
+  });
+}
+function highlightGenre(g){
+  genresListEl.querySelectorAll('.genre-link').forEach(el=>el.classList.remove('active'));
+  const found = [...genresListEl.children].find(ch => ch.textContent === g);
+  if(found) found.classList.add('active');
+}
+
+/* render grid */
+function render(list){
+  movies = loadMovies();
+  list = list || movies.slice();
+  // apply type filter
+  if(currentType) list = list.filter(m => m.type === currentType);
+  // genre filter
+  if(currentGenre && currentGenre !== 'Все') list = list.filter(m => normalize(m.genre) === normalize(currentGenre));
+  // search
+  const q = (qInput.value || '').trim().toLowerCase();
+  if(q) list = list.filter(m => (m.title + ' ' + (m.desc||'')).toLowerCase().includes(q));
+  // render
+  grid.innerHTML = '';
+  if(!list.length){ grid.innerHTML = '<div style="color:var(--muted);padding:20px">Ничего не найдено</div>'; return; }
+  list.forEach(m=>{
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <img class="poster" src="${escapeHtml(m.poster)}" alt="${escapeHtml(m.title)}">
+      <div class="card-body">
+        <h3 class="title">${escapeHtml(m.title)}</h3>
+        <div class="meta">${escapeHtml(m.genre)} • ${m.year} • ${m.time}</div>
+        <div style="display:flex;gap:8px">
+          <button class="watch" data-id="${m.id}">Смотреть</button>
+          <button class="info" data-id="${m.id}">Инфо</button>
+        </div>
+      </div>
+    `;
+    card.querySelector('.watch').addEventListener('click', ()=> openMovie(m.id));
+    card.querySelector('.info').addEventListener('click', ()=> openMovie(m.id));
+    grid.appendChild(card);
+  });
+}
+
+/* safe escape */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* normalize for flexible matching */
+function normalize(s){ return String(s||'').toLowerCase().replace(/\s+/g,'').replace(/[()]/g,''); }
+
+/* controls */
+function toggleGenres(){
+  const g = genresListEl;
+  g.style.display = g.style.display === 'flex' ? 'none' : 'flex';
+  document.getElementById('arrow').textContent = g.style.display === 'flex' ? '▲' : '▼';
+}
+function filterType(t){ currentType = (currentType === t ? null : t); render(); }
+function openAdmin(){ window.open('admin.html','_self'); }
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('show'); }
+
+/* open movie page with id */
+function openMovie(id){
+  window.location.href = `movie.html?id=${encodeURIComponent(id)}`;
+}
+
+/* events */
+qInput.addEventListener('input', ()=> render());
+
+/* init */
+renderGenres();
+highlightGenre('Все');
+render();
+
+/* listen to storage event so other tab (admin) changes reflect automatically */
+window.addEventListener('storage', (e)=>{
+  if(e.key === STORAGE_KEY) {
+    movies = loadMovies();
+    render();
+  }
+});
+</script>
+</body>
+</html>  
+
+

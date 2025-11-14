@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Кино — Просмотр</title>
+<style>
+:root{
+  --bg:#060708;
+  --panel:#0f1717;
+  --muted:#9aa6a6;
+  --accent:#16b395;
+  --accent2:#00d29a;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Inter,Arial;
+  background:var(--bg);
+  color:#e6f3ef;
+  min-height:100vh;
+  padding:18px;
+}
+
+.container{
+  max-width:1100px;
+  margin:0 auto;
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+}
+.poster{
+  width:320px;
+  flex-shrink:0;
+  border-radius:10px;
+  object-fit:cover;
+  background:#111;
+}
+
+.info{
+  flex:1;
+}
+
+.title{
+  font-size:26px;
+  margin:0;
+  color:var(--accent);
+}
+
+.meta{
+  color:var(--muted);
+  margin-top:6px;
+}
+
+.desc{
+  margin-top:12px;
+  color:#cfeee6;
+}
+
+.qualities{
+  margin-top:14px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.quality-btn{
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid  white;
+  background: white;
+  cursor:pointer;
+  font-weight:800;
+}
+
+.player{
+  margin-top:16px;
+  background:#000;
+  border-radius:8px;
+  overflow:hidden;
+  padding:10px;
+}
+
+video{
+  width:100%;
+  max-height:520px;
+  background:#000;
+  display:block;
+}
+
+.back{
+  display:inline-block;
+  margin-bottom:12px;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+@media(
+  max-width:900px
+)
+
+{ .container{flex-direction:column} 
+  .poster{width:100%} }
+
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">← Назад</a>
+
+<div id="main" class="container">
+  <img id="poster" class="poster" src="" alt="Poster">
+  <div class="info">
+    <h1 id="title" class="title">Название</h1>
+    <div id="meta" class="meta">Жанр • Год • Длительность</div>
+    <p id="desc" class="desc"></p>
+
+    <div class="qualities" id="qualities"></div>
+
+    <div class="player" id="playerWrap" style="display:none">
+      <video id="player" controls controlsList="nodownload">
+        <source id="playerSrc" src="" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+      </video>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'movies_v1';
+
+function loadMovies(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+function getParam(name){ return new URLSearchParams(location.search).get(name); }
+
+const id = getParam('id');
+if(!id){ alert('Фильм не найден'); location.href='index.html'; }
+
+const movies = loadMovies();
+const movie = movies.find(m => String(m.id) === String(id));
+if(!movie){ alert('Фильм не найден'); location.href='index.html'; }
+
+document.getElementById('poster').src = movie.poster || '';
+document.getElementById('title').textContent = movie.title || '';
+document.getElementById('meta').textContent = `${movie.genre || ''} • ${movie.year || ''} • ${movie.time || ''}`;
+document.getElementById('desc').textContent = movie.desc || '';
+
+const qualitiesWrap = document.getElementById('qualities');
+const playerWrap = document.getElementById('playerWrap');
+const player = document.getElementById('player');
+const playerSrc = document.getElementById('playerSrc');
+
+qualitiesWrap.innerHTML = '';
+(movie.qualities || []).forEach(q=>{
+  if(!q || !q.q) return;
+  const b = document.createElement('button');
+  b.className = 'quality-btn';
+  b.textContent = q.q;
+  b.addEventListener('click', ()=> {
+    if(!q.url){ alert('URL для этого качества не указан'); return; }
+    playerSrc.src = q.url;
+    player.load();
+    player.play().catch(()=>{});
+    playerWrap.style.display = 'block';
+    // scroll to player
+    player.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  qualitiesWrap.appendChild(b);
+});
+
+// optionally auto-play first quality if exists
+const first = (movie.qualities || []).find(x=>x.url);
+if(first){
+  // don't autoplay to avoid browser block; leave to user click
+}
+</script>
+</body>
+</html>
